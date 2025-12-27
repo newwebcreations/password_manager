@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Password Manager (Next.js + MongoDB)
 
-## Getting Started
+A minimal password manager with secure authentication, AES-encrypted vault entries, and a simple UI.
 
-First, run the development server:
+## Project Structure
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+src/
+  app/
+    api/
+      auth/
+        login/route.ts
+        logout/route.ts
+        signup/route.ts
+      passwords/
+        route.ts
+        [id]/route.ts
+    dashboard/page.tsx
+    login/page.tsx
+    passwords/new/page.tsx
+    page.tsx
+  lib/
+    auth.ts
+    crypto.ts
+    mongodb.ts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a `.env.local` file:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/password_manager
+JWT_SECRET=replace-with-long-random-string
+# 32 bytes (hex, base64, or 32-char utf8). Example hex:
+ENCRYPTION_KEY=5d2f5b1f7b0f4a4e5d3b7c1d4f0e2b1a9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f
+```
 
-## Learn More
+## Database Schema (MongoDB)
 
-To learn more about Next.js, take a look at the following resources:
+**users**
+```
+{
+  _id: ObjectId,
+  email: string,
+  passwordHash: string,
+  createdAt: Date
+}
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**passwords**
+```
+{
+  _id: ObjectId,
+  userId: ObjectId,
+  title: string,
+  username: string,
+  url: string,
+  passwordEncrypted: string,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Routes
 
-## Deploy on Vercel
+### Auth
+- `POST /api/auth/signup` — { email, password }
+- `POST /api/auth/login` — { email, password }
+- `POST /api/auth/logout`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Password Vault
+- `GET /api/passwords` — list entries (no plaintext password)
+- `POST /api/passwords` — add entry
+- `GET /api/passwords/:id` — decrypt and return a single entry
+- `PUT /api/passwords/:id` — update entry
+- `DELETE /api/passwords/:id` — delete entry
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Security Notes
+
+- Passwords are hashed with bcrypt before storing.
+- Vault passwords are encrypted with AES-256-GCM before storage.
+- Decryption happens only on authenticated requests.
+- Secrets are stored in environment variables (never in code).
+
+## Running Locally
+
+```
+npm install
+npm run dev
+```
+
+Visit http://localhost:3000
